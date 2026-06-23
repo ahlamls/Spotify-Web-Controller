@@ -1,0 +1,15 @@
+{
+  "name": "spotify-web-controller",
+  "version": "1.0.0",
+  "description": "Web interface to control Spotify client via Spicetify Extension",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.0"
+  },
+  "author": "Antigravity",
+  "license": "MIT"
+}

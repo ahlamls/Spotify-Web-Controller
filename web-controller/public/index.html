@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Web Controller</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Ambient Dynamic Background Glow -->
+    <div id="ambient-glow" class="ambient-glow"></div>
+    <div class="overlay"></div>
+
+    <div class="app-container">
+        <!-- Offline Overlay -->
+        <div id="offline-screen" class="offline-screen active">
+            <div class="offline-card">
+                <div class="pulse-icon">
+                    <i class="fa-brands fa-spotify"></i>
+                </div>
+                <h2>Waiting for Spotify Connection</h2>
+                <p>Make sure Spotify is running on your computer with the Spicetify Extension loaded.</p>
+                <div class="offline-steps">
+                    <div class="step">
+                        <span class="step-num">1</span>
+                        <span>Open Spotify Desktop App.</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-num">2</span>
+                        <span>Check Spotify's DevTools console to confirm extension loaded.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header: Logo, Search Bar, Connection Status -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-brands fa-spotify"></i>
+                <span>Spotify Controller</span>
+            </div>
+
+            <!-- Integrated Search Bar (At the Top) -->
+            <div class="search-bar-container">
+                <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
+                <input type="text" id="search-input" placeholder="Search songs, artists, albums..." autocomplete="off">
+                <button id="btn-clear-search" class="btn-clear" style="display: none;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <!-- Search Suggestions Dropdown -->
+                <div class="search-results-dropdown" id="search-results-overlay">
+                    <div class="search-wrapper">
+                        <!-- Search States -->
+                        <div id="search-placeholder" class="search-state-message">
+                            <i class="fa-solid fa-music"></i>
+                            <h3>Discover music</h3>
+                            <p>Search results will appear here.</p>
+                        </div>
+
+                        <div id="search-loading" class="search-state-message" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>Searching Spotify...</p>
+                        </div>
+
+                        <div id="search-no-results" class="search-state-message" style="display: none;">
+                            <i class="fa-solid fa-face-frown"></i>
+                            <h3>No results found</h3>
+                            <p>Try refining your query.</p>
+                        </div>
+
+                        <!-- Search Results List -->
+                        <div class="search-results-list" id="search-results-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="connection-status online" id="status-badge">
+                <span class="status-dot"></span>
+                <span class="status-text">Connected</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="main-workspace">
+            <!-- Left Side: Main Player Area -->
+            <div class="player-container">
+                <div class="player-wrapper">
+                    <!-- Album Vinyl Frame -->
+                    <div class="album-container">
+                        <div class="vinyl-record" id="vinyl-record">
+                            <img id="album-art"
+                                src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=500"
+                                alt="Album Art">
+                            <div class="vinyl-center"></div>
+                        </div>
+                    </div>
+
+                    <!-- Track Details -->
+                    <div class="track-details">
+                        <div class="track-info-text">
+                            <h1 id="track-title">Not Playing</h1>
+                            <h2 id="track-artist">Connect your Spotify client</h2>
+                        </div>
+                        <!-- <button id="btn-like" class="btn-icon love-btn" title="Like">
+                            <i class="fa-regular fa-heart"></i>
+                        </button> -->
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-section">
+                        <span id="time-current" class="time-label">0:00</span>
+                        <div class="progress-bar-container" id="progress-bar-container">
+                            <div class="progress-bar-rail"></div>
+                            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                            <div class="progress-handle" id="progress-handle"></div>
+                        </div>
+                        <span id="time-duration" class="time-label">0:00</span>
+                    </div>
+
+                    <!-- Playback Controls -->
+                    <div class="playback-controls">
+                        <button id="btn-shuffle" class="btn-icon" title="Shuffle">
+                            <i class="fa-solid fa-shuffle"></i>
+                        </button>
+                        <button id="btn-prev" class="btn-icon btn-secondary" title="Previous">
+                            <i class="fa-solid fa-backward-step"></i>
+                        </button>
+                        <button id="btn-play" class="btn-play-pause" title="Play">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                        <button id="btn-next" class="btn-icon btn-secondary" title="Next">
+                            <i class="fa-solid fa-forward-step"></i>
+                        </button>
+                        <button id="btn-repeat" class="btn-icon" title="Repeat">
+                            <i class="fa-solid fa-repeat"></i>
+                        </button>
+                    </div>
+
+                    <!-- Volume Section -->
+                    <div class="volume-section">
+                        <button id="btn-mute" class="btn-icon volume-icon" title="Mute/Unmute">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                        <div class="volume-slider-container" id="volume-slider-container">
+                            <div class="volume-rail"></div>
+                            <div class="volume-fill" id="volume-fill"></div>
+                            <input type="range" id="volume-slider" min="0" max="100" value="50" step="1">
+                        </div>
+                        <!-- Queue Button next to Volume -->
+                        <button id="btn-toggle-queue" class="btn-icon queue-toggle-btn" title="Open Queue">
+                            <i class="fa-solid fa-list-ul"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Slide-out Drawer: Play Queue (From Right Side) -->
+        <div class="queue-drawer" id="queue-drawer">
+            <div class="drawer-header">
+                <span class="drawer-title"><i class="fa-solid fa-list-ul"></i> Play Queue</span>
+                <button class="btn-icon btn-close-drawer" id="btn-close-queue" title="Close Queue">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="queue-wrapper">
+                <div class="queue-section-title">Now Playing</div>
+                <div class="queue-current-item" id="queue-current-item">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="queue-section-title" id="queue-user-title" style="display: none;">Next In Queue</div>
+                <div class="queue-list" id="queue-user-list" style="display: none;">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="queue-section-title" id="queue-context-title">Next Up</div>
+                <div class="queue-list" id="queue-context-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
