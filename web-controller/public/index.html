@@ -93,8 +93,36 @@
 
         <!-- Main Workspace -->
         <div class="main-workspace">
-            <!-- Left Section (Empty/Spacer) -->
-            <div class="left-section"></div>
+            <!-- Left Section: Lyrics -->
+            <div class="left-section lyrics-drawer">
+                <div class="drawer-header">
+                    <span class="drawer-title"><i class="fa-solid fa-microphone-lines"></i> Lyrics</span>
+                </div>
+
+                <div class="lyrics-wrapper" id="lyrics-wrapper">
+                    <div class="lyrics-state" id="lyrics-placeholder">
+                        <i class="fa-solid fa-music"></i>
+                        <h3>Lyrics will appear here</h3>
+                        <p>Start playing a track to see synced or plain lyrics.</p>
+                    </div>
+
+                    <div class="lyrics-state" id="lyrics-loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Loading lyrics...</p>
+                    </div>
+
+                    <div class="lyrics-state" id="lyrics-empty" style="display: none;">
+                        <i class="fa-regular fa-comment-dots"></i>
+                        <h3>No lyrics found</h3>
+                        <p>This track may not be available in the lyrics database.</p>
+                    </div>
+
+                    <div class="lyrics-content" id="lyrics-content" style="display: none;">
+                        <div class="lyrics-meta" id="lyrics-meta"></div>
+                        <div class="lyrics-lines" id="lyrics-lines"></div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Center Section: Main Player Area -->
             <div class="center-section player-container">

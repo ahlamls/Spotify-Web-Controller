@@ -16,6 +16,7 @@
             
             // Cache settings
             this.searchCache = new Map();
+            this.lyricsCache = new Map();
             this.CACHE_TTL = 30000; // 30 seconds
 
             // Polling detection state
@@ -141,6 +142,19 @@
         }
 
         /**
+         * Build a stable cache key for the current track.
+         */
+        getTrackKey(track) {
+            if (!track) return '';
+            return [
+                track.uri || '',
+                track.title || '',
+                track.artist || '',
+                track.album || '',
+            ].join('|');
+        }
+
+        /**
          * Get the current playback state formatted
          */
         getPlaybackState() {
@@ -155,7 +169,10 @@
                 const heart = typeof Spicetify.Player.getHeart === 'function' ? Spicetify.Player.getHeart() : false;
 
                 return {
-                    track: this.normalizeTrackInfo(item, 'player'),
+                    track: {
+                        ...this.normalizeTrackInfo(item, 'player'),
+                        duration
+                    },
                     progress,
                     duration,
                     isPlaying,
@@ -250,6 +267,7 @@
         broadcastFullState() {
             this.send('state', this.getPlaybackState());
             this.broadcastQueue();
+            this.broadcastLyrics();
         }
 
         /**
@@ -257,6 +275,152 @@
          */
         broadcastQueue() {
             this.send('queue', this.getQueueState());
+        }
+
+        /**
+         * Parse LRCLIB timed lyric text into structured lines.
+         */
+        parseSyncedLyrics(text) {
+            if (!text || typeof text !== 'string') return [];
+
+            const lines = [];
+            const rows = text.split(/\r?\n/);
+
+            for (const row of rows) {
+                const matches = [...row.matchAll(/\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/g)];
+                if (matches.length === 0) continue;
+
+                const lyricText = row.replace(/\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/g, '').trim();
+                if (!lyricText) continue;
+
+                for (const match of matches) {
+                    const minutes = parseInt(match[1], 10);
+                    const seconds = parseInt(match[2], 10);
+                    const fraction = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3), 10) : 0;
+                    const time = (minutes * 60 * 1000) + (seconds * 1000) + fraction;
+                    lines.push({ time, text: lyricText });
+                }
+            }
+
+            return lines.sort((a, b) => a.time - b.time);
+        }
+
+        /**
+         * Parse plain lyrics into one line per entry.
+         */
+        parsePlainLyrics(text) {
+            if (!text || typeof text !== 'string') return [];
+            return text
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(Boolean)
+                .map(text => ({ time: -1, text }));
+        }
+
+        /**
+         * Fetch lyrics from LRCLIB with cache and graceful fallback.
+         */
+        async fetchLyrics(track) {
+            if (!track?.title || !track?.artist) return null;
+
+            const cacheKey = this.getTrackKey(track);
+            const cached = this.lyricsCache.get(cacheKey);
+            if (cached) return cached;
+
+            const query = new URLSearchParams({
+                track_name: track.title,
+                artist_name: track.artist,
+            });
+            if (track.album) query.set('album_name', track.album);
+            if (track.duration) query.set('duration', String(Math.round(track.duration / 1000)));
+
+            const resp = await this.origFetch(`https://lrclib.net/api/get?${query.toString()}`, {
+                headers: { accept: 'application/json' }
+            });
+
+            if (!resp.ok) {
+                if (resp.status === 404) return null;
+                throw new Error(`LRCLIB HTTP ${resp.status}`);
+            }
+
+            const json = await resp.json();
+            let lines = [];
+            let synced = false;
+
+            if (json?.syncedLyrics) {
+                lines = this.parseSyncedLyrics(json.syncedLyrics);
+                synced = lines.length > 0;
+            }
+            if (lines.length === 0 && json?.plainLyrics) {
+                lines = this.parsePlainLyrics(json.plainLyrics);
+            }
+            if (lines.length === 0 && typeof json?.lyrics === 'string') {
+                lines = this.parsePlainLyrics(json.lyrics);
+            }
+
+            const result = {
+                trackKey: cacheKey,
+                title: track.title,
+                artist: track.artist,
+                album: track.album || '',
+                source: 'LRCLIB',
+                synced,
+                lines,
+                rawText: json?.plainLyrics || json?.lyrics || ''
+            };
+
+            this.lyricsCache.set(cacheKey, result);
+            return result;
+        }
+
+        /**
+         * Send lyrics state for the current track to the client.
+         */
+        async broadcastLyrics() {
+            try {
+                const track = this.normalizeTrackInfo(Spicetify.Player.data?.item, 'player');
+                if (!track) {
+                    this.send('lyrics', { loading: false, trackKey: '', lines: [], rawText: '' });
+                    return;
+                }
+
+                const trackKey = this.getTrackKey(track);
+                this.send('lyrics', {
+                    loading: true,
+                    trackKey,
+                    title: track.title,
+                    artist: track.artist
+                });
+
+                const lyrics = await this.fetchLyrics(track);
+                if (!lyrics) {
+                    this.send('lyrics', {
+                        loading: false,
+                        trackKey,
+                        title: track.title,
+                        artist: track.artist,
+                        lines: [],
+                        rawText: ''
+                    });
+                    return;
+                }
+
+                this.send('lyrics', {
+                    loading: false,
+                    ...lyrics
+                });
+            } catch (err) {
+                console.error("Spotify Web Controller Extension: Error fetching lyrics:", err);
+                const track = this.normalizeTrackInfo(Spicetify.Player.data?.item, 'player');
+                this.send('lyrics', {
+                    loading: false,
+                    trackKey: this.getTrackKey(track),
+                    title: track?.title || '',
+                    artist: track?.artist || '',
+                    lines: [],
+                    rawText: ''
+                });
+            }
         }
 
         /**
@@ -532,8 +696,8 @@
          */
         initEventListeners() {
             Spicetify.Player.addEventListener("songchange", () => {
-                console.log("Spotify Web Controller Extension: songchange event");
-                setTimeout(() => this.broadcastFullState(), 300);
+            console.log("Spotify Web Controller Extension: songchange event");
+            setTimeout(() => this.broadcastFullState(), 300);
             });
 
             Spicetify.Player.addEventListener("onplaypause", () => {

@@ -672,6 +672,107 @@ body {
     flex-shrink: 0;
 }
 
+.lyrics-drawer {
+    position: relative;
+    height: 100%;
+    background: rgba(10, 11, 14, 0.25);
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    z-index: 3;
+}
+
+.lyrics-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.lyrics-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 100%;
+}
+
+.lyrics-meta {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    line-height: 1.5;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 12px 14px;
+    border-radius: 14px;
+}
+
+.lyrics-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+}
+
+.lyrics-line {
+    padding: 10px 12px;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.55;
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid transparent;
+}
+
+.lyrics-line.active {
+    color: var(--text-main);
+    background: rgba(30, 215, 96, 0.08);
+    border-color: rgba(30, 215, 96, 0.18);
+    box-shadow: 0 0 0 1px rgba(30, 215, 96, 0.06) inset;
+}
+
+.lyrics-line.upcoming {
+    opacity: 0.72;
+}
+
+.lyrics-line.empty {
+    text-align: center;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px dashed var(--border);
+}
+
+.lyrics-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+}
+
+.lyrics-state i {
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+}
+
+.lyrics-state h3 {
+    color: var(--text-main);
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.lyrics-state p {
+    font-size: 13px;
+    max-width: 250px;
+}
+
 /* Center Section (Player wrapper container) */
 .center-section {
     flex-grow: 1;
