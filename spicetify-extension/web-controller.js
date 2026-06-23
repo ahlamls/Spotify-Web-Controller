@@ -267,7 +267,6 @@
         broadcastFullState() {
             this.send('state', this.getPlaybackState());
             this.broadcastQueue();
-            this.broadcastLyrics();
         }
 
         /**

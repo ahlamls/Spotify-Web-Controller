@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Player Elements
     const albumArt = document.getElementById('album-art');
     const vinylRecord = document.getElementById('vinyl-record');
+    const albumContainer = document.querySelector('.album-container');
     const trackTitle = document.getElementById('track-title');
     const trackArtist = document.getElementById('track-artist');
     const timeCurrent = document.getElementById('time-current');
@@ -54,14 +55,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const queueModalContextList = document.getElementById('queue-modal-context-list');
     const btnQueueModal = document.getElementById('btn-queue-modal');
     const btnCloseQueueModal = document.getElementById('btn-close-queue-modal');
+    const btnLyricsMobile = document.getElementById('btn-lyrics-mobile');
 
     // Lyrics Elements
     const lyricsPlaceholder = document.getElementById('lyrics-placeholder');
     const lyricsLoading = document.getElementById('lyrics-loading');
     const lyricsEmpty = document.getElementById('lyrics-empty');
     const lyricsContent = document.getElementById('lyrics-content');
-    const lyricsMeta = document.getElementById('lyrics-meta');
     const lyricsLines = document.getElementById('lyrics-lines');
+    const mobileLyricsView = document.getElementById('mobile-lyrics-view');
+    const mobileLyricsPlaceholder = document.getElementById('mobile-lyrics-placeholder');
+    const mobileLyricsLoading = document.getElementById('mobile-lyrics-loading');
+    const mobileLyricsEmpty = document.getElementById('mobile-lyrics-empty');
+    const mobileLyricsContent = document.getElementById('mobile-lyrics-content');
+    const mobileLyricsLines = document.getElementById('mobile-lyrics-lines');
 
 
 
@@ -96,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rawText: '',
         activeIndex: -1
     };
+    let isMobileLyricsOpen = false;
 
     // Convert spotify image URIs to public HTTP URLs
     function getImageUrl(uri) {
@@ -123,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Queue Modal Handlers ---
     function openQueueModal() {
+        if (isMobileLyricsOpen) closeMobileLyricsView();
         queueModalOverlay.classList.add('open');
         btnQueueModal.classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -136,6 +145,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnQueueModal.addEventListener('click', openQueueModal);
     btnCloseQueueModal.addEventListener('click', closeQueueModal);
+
+    function openMobileLyricsView() {
+        queueModalOverlay.classList.remove('open');
+        btnQueueModal.classList.remove('active');
+        isMobileLyricsOpen = true;
+        if (mobileLyricsView) mobileLyricsView.style.display = 'flex';
+        if (albumContainer) albumContainer.style.display = 'none';
+        if (btnLyricsMobile) btnLyricsMobile.classList.add('active');
+    }
+
+    function closeMobileLyricsView() {
+        isMobileLyricsOpen = false;
+        if (mobileLyricsView) mobileLyricsView.style.display = 'none';
+        if (albumContainer) albumContainer.style.display = '';
+        if (btnLyricsMobile) btnLyricsMobile.classList.remove('active');
+    }
+
+    btnLyricsMobile.addEventListener('click', () => {
+        if (isMobileLyricsOpen) {
+            closeMobileLyricsView();
+        } else {
+            openMobileLyricsView();
+        }
+    });
 
     // Close modal when clicking on the overlay backdrop
     queueModalOverlay.addEventListener('click', (e) => {
@@ -211,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusBadge.className = 'connection-status offline';
         statusBadge.querySelector('.status-text').textContent = 'Spotify Offline';
         stopProgressInterpolation();
+        closeMobileLyricsView();
     }
 
     // --- Send Command Helper ---
@@ -453,8 +487,13 @@ document.addEventListener('DOMContentLoaded', () => {
         lyricsLoading.style.display = 'none';
         lyricsEmpty.style.display = 'none';
         lyricsContent.style.display = 'none';
-        lyricsMeta.textContent = '';
         lyricsLines.innerHTML = '';
+
+        mobileLyricsPlaceholder.style.display = 'flex';
+        mobileLyricsLoading.style.display = 'none';
+        mobileLyricsEmpty.style.display = 'none';
+        mobileLyricsContent.style.display = 'none';
+        mobileLyricsLines.innerHTML = '';
     }
 
     function getCurrentTrackKey() {
@@ -489,6 +528,10 @@ document.addEventListener('DOMContentLoaded', () => {
             lyricsEmpty.style.display = 'none';
             lyricsLoading.style.display = 'flex';
             lyricsContent.style.display = 'none';
+            mobileLyricsPlaceholder.style.display = 'none';
+            mobileLyricsEmpty.style.display = 'none';
+            mobileLyricsLoading.style.display = 'flex';
+            mobileLyricsContent.style.display = 'none';
             return;
         }
 
@@ -497,6 +540,10 @@ document.addEventListener('DOMContentLoaded', () => {
             lyricsLoading.style.display = 'none';
             lyricsContent.style.display = 'none';
             lyricsEmpty.style.display = 'flex';
+            mobileLyricsPlaceholder.style.display = 'none';
+            mobileLyricsLoading.style.display = 'none';
+            mobileLyricsContent.style.display = 'none';
+            mobileLyricsEmpty.style.display = 'flex';
             return;
         }
 
@@ -504,10 +551,10 @@ document.addEventListener('DOMContentLoaded', () => {
         lyricsLoading.style.display = 'none';
         lyricsEmpty.style.display = 'none';
         lyricsContent.style.display = 'flex';
-
-        const sourceLabel = lyricsState.source ? `Source: ${lyricsState.source}` : 'Lyrics';
-        const modeLabel = lyricsState.synced ? 'Synced lyrics' : 'Plain lyrics';
-        lyricsMeta.textContent = `${modeLabel} • ${sourceLabel}`;
+        mobileLyricsPlaceholder.style.display = 'none';
+        mobileLyricsLoading.style.display = 'none';
+        mobileLyricsEmpty.style.display = 'none';
+        mobileLyricsContent.style.display = 'flex';
 
         renderLyricsLines();
         updateLyricsHighlight(playbackState.progress);
@@ -515,12 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderLyricsLines() {
         lyricsLines.innerHTML = '';
+        mobileLyricsLines.innerHTML = '';
 
         if (lyricsState.lines.length === 0) {
             const emptyLine = document.createElement('div');
             emptyLine.className = 'lyrics-line empty';
             emptyLine.textContent = lyricsState.rawText || 'No lyrics available.';
             lyricsLines.appendChild(emptyLine);
+            mobileLyricsLines.appendChild(emptyLine.cloneNode(true));
             return;
         }
 
@@ -529,8 +578,13 @@ document.addEventListener('DOMContentLoaded', () => {
             lineEl.className = 'lyrics-line';
             lineEl.dataset.index = String(index);
             lineEl.dataset.time = String(typeof line.time === 'number' ? line.time : -1);
-            lineEl.textContent = line.text || '';
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = line.text || '';
+            lineEl.appendChild(textSpan);
+
             lyricsLines.appendChild(lineEl);
+            mobileLyricsLines.appendChild(lineEl.cloneNode(true));
         });
     }
 
@@ -549,14 +603,38 @@ document.addEventListener('DOMContentLoaded', () => {
         lyricsState.activeIndex = activeIndex;
 
         const lineEls = lyricsLines.querySelectorAll('.lyrics-line');
+        const mobileLineEls = mobileLyricsLines.querySelectorAll('.lyrics-line');
         lineEls.forEach((el, index) => {
             el.classList.toggle('active', index === activeIndex);
             el.classList.toggle('upcoming', activeIndex >= 0 ? index > activeIndex : index > 0);
+            el.classList.toggle('past', activeIndex >= 0 ? index < activeIndex : false);
+        });
+        mobileLineEls.forEach((el, index) => {
+            el.classList.toggle('active', index === activeIndex);
+            el.classList.toggle('upcoming', activeIndex >= 0 ? index > activeIndex : index > 0);
+            el.classList.toggle('past', activeIndex >= 0 ? index < activeIndex : false);
         });
 
         const activeEl = lyricsLines.querySelector('.lyrics-line.active');
         if (activeEl) {
-            activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            requestAnimationFrame(() => {
+                activeEl.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            });
+        }
+
+        const mobileActiveEl = mobileLyricsLines.querySelector('.lyrics-line.active');
+        if (mobileActiveEl) {
+            requestAnimationFrame(() => {
+                mobileActiveEl.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            });
         }
     }
 
@@ -710,6 +788,153 @@ document.addEventListener('DOMContentLoaded', () => {
         data.tracks.forEach(track => searchResultsList.appendChild(buildTrackItem(track)));
     }
 
+    function getDraggingQueueItem() {
+        return document.querySelector('.queue-item.dragging');
+    }
+
+    let touchDragState = {
+        active: false,
+        item: null,
+        identifier: null,
+        currentContainer: null
+    };
+
+    function getTouchPointById(touchList, identifier) {
+        for (const touch of touchList) {
+            if (touch.identifier === identifier) return touch;
+        }
+        return null;
+    }
+
+    function getQueueContainerFromPoint(x, y) {
+        const element = document.elementFromPoint(x, y);
+        return element ? element.closest('.queue-list') : null;
+    }
+
+    function beginTouchQueueDrag(trackItem, touch) {
+        if (!trackItem || !touch || touchDragState.active) return;
+
+        touchDragState.active = true;
+        touchDragState.item = trackItem;
+        touchDragState.identifier = touch.identifier;
+        touchDragState.currentContainer = trackItem.closest('.queue-list');
+        trackItem.classList.add('dragging');
+    }
+
+    function moveTouchQueueDrag(touch) {
+        if (!touchDragState.active || !touchDragState.item || !touch) return;
+
+        const targetContainer = getQueueContainerFromPoint(touch.clientX, touch.clientY) || touchDragState.currentContainer;
+        if (!targetContainer) return;
+
+        const afterElement = getDragAfterElement(targetContainer, touch.clientY);
+        if (afterElement == null) {
+            targetContainer.appendChild(touchDragState.item);
+        } else {
+            targetContainer.insertBefore(touchDragState.item, afterElement);
+        }
+
+        touchDragState.currentContainer = targetContainer;
+    }
+
+    function finishTouchQueueDrag() {
+        if (!touchDragState.active || !touchDragState.item) return;
+
+        const trackItem = touchDragState.item;
+        trackItem.classList.remove('dragging');
+
+        const parentContainer = trackItem.closest('.queue-list');
+        const nextItem = trackItem.nextElementSibling;
+        const contextContainer = parentContainer === queueModalUserList ? queueModalContextList : queueContextList;
+        let insertBeforeTrack = null;
+
+        if (nextItem) {
+            insertBeforeTrack = {
+                uri: nextItem.dataset.uri || "",
+                uid: nextItem.dataset.uid
+            };
+        } else if (parentContainer === queueUserList || parentContainer === queueModalUserList) {
+            const firstContextItem = contextContainer?.querySelector('.queue-item');
+            if (firstContextItem && firstContextItem !== trackItem) {
+                insertBeforeTrack = {
+                    uri: firstContextItem.dataset.uri || "",
+                    uid: firstContextItem.dataset.uid
+                };
+            }
+        }
+
+        sendCommand('reorder_queue', {
+            track: { uri: trackItem.dataset.uri || "", uid: trackItem.dataset.uid || "" },
+            insertBefore: insertBeforeTrack
+        });
+
+        touchDragState.active = false;
+        touchDragState.item = null;
+        touchDragState.identifier = null;
+        touchDragState.currentContainer = null;
+    }
+
+    document.addEventListener('touchmove', (e) => {
+        if (!touchDragState.active) return;
+        const touch = getTouchPointById(e.changedTouches, touchDragState.identifier);
+        if (!touch) return;
+        moveTouchQueueDrag(touch);
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', (e) => {
+        if (!touchDragState.active) return;
+        const touch = getTouchPointById(e.changedTouches, touchDragState.identifier);
+        if (!touch) return;
+        finishTouchQueueDrag();
+    }, { passive: true });
+
+    document.addEventListener('touchcancel', () => {
+        if (!touchDragState.active || !touchDragState.item) return;
+        touchDragState.item.classList.remove('dragging');
+        touchDragState.active = false;
+        touchDragState.item = null;
+        touchDragState.identifier = null;
+        touchDragState.currentContainer = null;
+    }, { passive: true });
+
+    function attachQueueDragHandlers(container, fallbackContainer = null) {
+        if (!container || container.dataset.dragOverAttached) return;
+        container.dataset.dragOverAttached = 'true';
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const draggingItem = getDraggingQueueItem();
+            if (!draggingItem) return;
+
+            const afterElement = getDragAfterElement(container, e.clientY);
+            if (afterElement == null) {
+                container.appendChild(draggingItem);
+            } else {
+                container.insertBefore(draggingItem, afterElement);
+            }
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+        });
+
+        if (fallbackContainer) {
+            fallbackContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const draggingItem = getDraggingQueueItem();
+                if (!draggingItem) return;
+
+                const afterElement = getDragAfterElement(container, e.clientY);
+                if (afterElement == null) {
+                    container.appendChild(draggingItem);
+                } else {
+                    container.insertBefore(draggingItem, afterElement);
+                }
+            });
+        }
+    }
+
     // --- Queue Features ---
     function updateQueueUI(queueData) {
         if (!queueData) return;
@@ -773,7 +998,6 @@ document.addEventListener('DOMContentLoaded', () => {
             trackItem.innerHTML = `
                 <div class="track-item-left">
                     ${dragHandleHTML}
-                    <span class="track-duration" style="width:20px">${index + 1}</span>
                     <img class="track-item-art" src="${artUrl}" alt="Album Art">
                     <div class="track-item-details">
                         <span class="track-item-title">${track.title}</span>
@@ -799,8 +1023,9 @@ document.addEventListener('DOMContentLoaded', () => {
             trackItem.addEventListener('dragend', () => {
                 trackItem.classList.remove('dragging');
 
-                // Determine the item dropped before
+                const parentContainer = trackItem.closest('.queue-list');
                 const nextItem = trackItem.nextElementSibling;
+                const contextContainer = parentContainer === queueModalUserList ? queueModalContextList : queueContextList;
                 let insertBeforeTrack = null;
 
                 if (nextItem) {
@@ -808,15 +1033,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         uri: nextItem.dataset.uri || "",
                         uid: nextItem.dataset.uid
                     };
-                } else {
+                } else if (parentContainer === queueUserList || parentContainer === queueModalUserList) {
                     // Dropped at the end. Target the first context track if available.
-                    const firstContextItem = queueContextList.querySelector('.queue-item');
+                    const firstContextItem = contextContainer?.querySelector('.queue-item');
                     if (firstContextItem && firstContextItem !== trackItem) {
                         insertBeforeTrack = {
                             uri: firstContextItem.dataset.uri || "",
                             uid: firstContextItem.dataset.uid
                         };
                     }
+                } else {
+                    insertBeforeTrack = null;
                 }
 
                 sendCommand('reorder_queue', {
@@ -824,6 +1051,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     insertBefore: insertBeforeTrack
                 });
             });
+
+            const dragHandle = trackItem.querySelector('.drag-handle');
+            if (dragHandle) {
+                dragHandle.addEventListener('touchstart', (e) => {
+                    if (e.touches.length !== 1) return;
+                    beginTouchQueueDrag(trackItem, e.touches[0]);
+                    e.preventDefault();
+                }, { passive: false });
+            }
+
+            trackItem.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                if (e.target.closest('button')) return;
+                beginTouchQueueDrag(trackItem, e.touches[0]);
+                e.preventDefault();
+            }, { passive: false });
 
             // Action Handlers
             const btnRemove = trackItem.querySelector('.btn-remove-queue');
@@ -946,22 +1189,10 @@ document.addEventListener('DOMContentLoaded', () => {
             queueModalContextList.innerHTML = '<div class="search-state-message" style="padding:40px"><p>Queue is empty</p></div>';
         }
 
-        // Add dragover reordering on the queue wrapper
-        const queueWrapper = document.querySelector('.queue-wrapper');
-        if (queueWrapper && !queueWrapper.dataset.dragOverAttached) {
-            queueWrapper.dataset.dragOverAttached = 'true';
-            queueWrapper.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                const draggingItem = queueUserList.querySelector('.dragging');
-                if (!draggingItem) return;
-                const afterElement = getDragAfterElement(queueUserList, e.clientY);
-                if (afterElement == null) {
-                    queueUserList.appendChild(draggingItem);
-                } else {
-                    queueUserList.insertBefore(draggingItem, afterElement);
-                }
-            });
-        }
+        attachQueueDragHandlers(queueUserList);
+        attachQueueDragHandlers(queueContextList);
+        attachQueueDragHandlers(queueModalUserList);
+        attachQueueDragHandlers(queueModalContextList);
     }
 
     // Helper to calculate the element immediately below the cursor during drag
