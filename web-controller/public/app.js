@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnMute = document.getElementById('btn-mute');
     const volumeSlider = document.getElementById('volume-slider');
     const volumeFill = document.getElementById('volume-fill');
+    const volumePercentage = document.getElementById('volume-percentage');
 
     // Search Elements
     const searchInput = document.getElementById('search-input');
@@ -65,6 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let localProgressTimer = null;
     let searchDebounceTimeout = null;
     let previousVolume = 0.5;
+    let isDraggingVolume = false;
+    let volumeCooldownTimer = null;
 
     // Convert spotify image URIs to public HTTP URLs
     function getImageUrl(uri) {
@@ -209,11 +212,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Volume Handlers ---
+    function startVolumeCooldown() {
+        if (volumeCooldownTimer) clearTimeout(volumeCooldownTimer);
+        volumeCooldownTimer = setTimeout(() => {
+            volumeCooldownTimer = null;
+        }, 1000);
+    }
+
     volumeSlider.addEventListener('input', (e) => {
+        isDraggingVolume = true;
         const val = parseInt(e.target.value);
         updateVolumeBarUI(val);
         sendCommand('volume', val / 100);
     });
+
+    volumeSlider.addEventListener('mousedown', () => {
+        isDraggingVolume = true;
+        if (volumeCooldownTimer) {
+            clearTimeout(volumeCooldownTimer);
+            volumeCooldownTimer = null;
+        }
+    });
+
+    volumeSlider.addEventListener('touchstart', () => {
+        isDraggingVolume = true;
+        if (volumeCooldownTimer) {
+            clearTimeout(volumeCooldownTimer);
+            volumeCooldownTimer = null;
+        }
+    }, { passive: true });
+
+    // Handle mouse/touch release on document to make sure we catch it even if released outside slider
+    const handleVolumeRelease = () => {
+        if (isDraggingVolume) {
+            isDraggingVolume = false;
+            startVolumeCooldown();
+        }
+    };
+    document.addEventListener('mouseup', handleVolumeRelease);
+    document.addEventListener('touchend', handleVolumeRelease, { passive: true });
 
     btnMute.addEventListener('click', () => {
         const currentVal = parseInt(volumeSlider.value);
@@ -225,11 +262,17 @@ document.addEventListener('DOMContentLoaded', () => {
             updateVolumeBarUI(previousVolume);
             sendCommand('volume', previousVolume / 100);
         }
+        // Also trigger a temporary cooldown when clicking mute/unmute to prevent race conditions
+        isDraggingVolume = false;
+        startVolumeCooldown();
     });
 
     function updateVolumeBarUI(percentage) {
         volumeSlider.value = percentage;
         volumeFill.style.width = `${percentage}%`;
+        if (volumePercentage) {
+            volumePercentage.textContent = `${percentage}%`;
+        }
 
         const muteIcon = btnMute.querySelector('i');
         muteIcon.className = '';
@@ -245,12 +288,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateVolumeUI(volumeFloat) {
+        if (isDraggingVolume || volumeCooldownTimer) return;
         playbackState.volume = volumeFloat;
         updateVolumeBarUI(Math.round(volumeFloat * 100));
     }
 
     // --- UI Update Operations ---
     function updatePlayerUI(state) {
+        if (isDraggingVolume || volumeCooldownTimer) {
+            delete state.volume;
+        }
         playbackState = { ...playbackState, ...state };
 
         // 1. Text & Track Details
