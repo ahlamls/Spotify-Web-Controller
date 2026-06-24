@@ -1150,71 +1150,6 @@ body {
     flex-grow: 1;
 }
 
-/* Floating Lyrics Window (Desktop Only) */
-.floating-lyrics-window {
-    position: fixed;
-    z-index: 150;
-    width: 380px;
-    height: 500px;
-    min-width: 280px;
-    min-height: 300px;
-    background: rgba(10, 11, 14, 0.65);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    resize: both;
-}
-
-.floating-lyrics-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 18px;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid var(--border);
-    cursor: move;
-    user-select: none;
-    flex-shrink: 0;
-}
-
-.floating-lyrics-title {
-    font-size: 14px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-main);
-}
-
-.floating-lyrics-title i {
-    color: var(--primary);
-}
-
-.floating-lyrics-controls {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.floating-lyrics-body {
-    flex-grow: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    position: relative;
-}
-
-.floating-lyrics-body .lyrics-wrapper {
-    height: 100%;
-}
-
-.floating-lyrics-window .lyrics-line,
 #pip-lyrics-wrapper .lyrics-line {
     font-size: 21px;
 }
@@ -1225,9 +1160,6 @@ body {
 
 /* Below 1300px: hide sidebar queue, show queue button in volume bar */
 @media (max-width: 1300px) {
-    .floating-lyrics-window {
-        display: none !important;
-    }
 
     .left-section {
         display: none;
@@ -1390,4 +1322,147 @@ body {
         color: rgba(255, 255, 255, 0.98);
         text-shadow: 0 0 5px rgba(255, 255, 255, 0.12), 0 0 10px rgba(30, 215, 96, 0.1);
     }
+}
+
+/* ======================================================
+   PICTURE IN PICTURE HELP MODAL
+   ====================================================== */
+.pip-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.pip-modal-overlay.open {
+    display: flex;
+    opacity: 1;
+}
+
+.pip-modal {
+    width: 90%;
+    max-width: 520px;
+    background: rgba(55, 57, 70, 0.8);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pip-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.pip-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-main);
+}
+
+.pip-modal-header h3 i {
+    color: #ff9500;
+}
+
+.pip-modal-body {
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    line-height: 1.6;
+}
+
+.pip-modal-body p {
+    margin-top: 0;
+    margin-bottom: 18px;
+}
+
+.instructions-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px 20px;
+}
+
+.instructions-card h4 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.instructions-card ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.instructions-card li {
+    margin-bottom: 12px;
+}
+
+.instructions-card li:last-child {
+    margin-bottom: 0;
+}
+
+.code-highlight {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-family: monospace;
+    color: var(--text-main);
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.flag-copy-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.btn-copy {
+    background: var(--primary);
+    color: #000;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-copy:hover {
+    background: var(--primary-glow);
+    transform: translateY(-1px);
+}
+
+.btn-copy:active {
+    transform: translateY(0);
 }

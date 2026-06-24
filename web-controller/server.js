@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const WebSocket = require('ws');
 const path = require('path');
 const os = require('os');
@@ -9,8 +10,24 @@ const crypto = require('crypto');
 class SpotifyWebControllerServer {
     constructor(port = 8080) {
         this.port = process.env.PORT || port;
+        this.httpsPort = 8443;
         this.app = express();
         this.server = http.createServer(this.app);
+
+        const keyPath = path.join(__dirname, 'key.pem');
+        const certPath = path.join(__dirname, 'cert.pem');
+        this.isHttps = fs.existsSync(keyPath) && fs.existsSync(certPath);
+
+        if (this.isHttps) {
+            const options = {
+                key: fs.readFileSync(keyPath),
+                cert: fs.readFileSync(certPath)
+            };
+            this.httpsServer = https.createServer(options, this.app);
+        } else {
+            this.httpsServer = null;
+        }
+
         this.wss = new WebSocket.Server({ noServer: true });
 
         this.spotifySocket = null;
@@ -278,7 +295,7 @@ class SpotifyWebControllerServer {
      * Bind connection events and HTTP connection upgrades to WS
      */
     initWebSocket() {
-        this.server.on('upgrade', (request, socket, head) => {
+        const handleUpgrade = (request, socket, head) => {
             const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
 
             if (pathname === '/spotify') {
@@ -292,7 +309,12 @@ class SpotifyWebControllerServer {
             } else {
                 socket.destroy();
             }
-        });
+        };
+
+        this.server.on('upgrade', handleUpgrade);
+        if (this.httpsServer) {
+            this.httpsServer.on('upgrade', handleUpgrade);
+        }
 
         this.wss.on('connection', (ws, request, type) => {
             if (type === 'spotify') {
@@ -420,23 +442,41 @@ class SpotifyWebControllerServer {
      * Start Express server listening
      */
     start() {
+        // Start HTTP Server
         this.server.listen(this.port, () => {
             console.log('\n======================================================');
-            console.log(`Spotify Web Controller Server is running on port ${this.port}`);
+            console.log(`Spotify Web Controller Server (HTTP) is running on port ${this.port}`);
             console.log('======================================================');
             console.log(`Access locally: http://localhost:${this.port}`);
             
             const localIPs = this.getLocalIPs();
             if (localIPs.length > 0) {
-                console.log('\nTo control Spotify from other devices (like your phone):');
+                console.log('\nTo control Spotify from other devices (HTTP):');
                 localIPs.forEach(ip => {
                     console.log(`👉 http://${ip}:${this.port}`);
                 });
-            } else {
-                console.log('\nNo external network interfaces found. Local-only access.');
             }
             console.log('======================================================\n');
         });
+
+        // Start HTTPS Server if certificates are available
+        if (this.httpsServer) {
+            this.httpsServer.listen(this.httpsPort, () => {
+                console.log('======================================================');
+                console.log(`Spotify Web Controller Server (HTTPS) is running on port ${this.httpsPort}`);
+                console.log('======================================================');
+                console.log(`Access securely: https://localhost:${this.httpsPort}`);
+                
+                const localIPs = this.getLocalIPs();
+                if (localIPs.length > 0) {
+                    console.log('\nTo control Spotify from other devices (HTTPS/Picture-in-Picture):');
+                    localIPs.forEach(ip => {
+                        console.log(`👉 https://${ip}:${this.httpsPort}`);
+                    });
+                }
+                console.log('======================================================\n');
+            });
+        }
     }
 }
 
